@@ -15,6 +15,7 @@ type Product = {
   price: number
   stock: number
   image_url?: string
+  nuvemshop_url?: string
 }
 
 const CATEGORIES = ['Todos', 'Aneis', 'Colares', 'Pulseiras', 'Brincos']
@@ -363,7 +364,7 @@ function Popup() {
 
 function ProductModal({ product, onClose }: { product: Product | null, onClose: () => void }) {
   if (!product) return null
-  const url = 'https://mavve.lojavirtualnuvem.com.br/busca?q=' + encodeURIComponent(product.name)
+  const url = product.nuvemshop_url || ('https://mavve.lojavirtualnuvem.com.br/busca?q=' + encodeURIComponent(product.name))
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', maxWidth: 500, width: '100%', position: 'relative' }}>
