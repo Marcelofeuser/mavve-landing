@@ -151,11 +151,16 @@ function ProductCard({ product }: { product: Product }) {
   const url = NUVEMSHOP_URL + '/busca?q=' + encodeURIComponent(product.name)
   return (
     <div onClick={() => window.open(url, '_blank')} style={{ background: '#fff', border: '1px solid rgba(201,168,76,0.15)', overflow: 'hidden', cursor: 'pointer' }}>
-      <div style={{ width: '100%', aspectRatio: '1', background: '#F0EAE0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#9A7A83' }}>
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" opacity={0.3}>
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-        <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{product.sku}</span>
+      <div style={{ width: '100%', aspectRatio: '1', background: '#F0EAE0', overflow: 'hidden' }}>
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#9A7A83' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" opacity={0.3}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{product.sku}</span>
+            </div>
+        }
       </div>
       <div style={{ padding: 20 }}>
         <div style={{ fontSize: 10, color: '#9A7A83', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>{product.category || 'Acessorio'}</div>
