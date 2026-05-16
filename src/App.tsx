@@ -147,10 +147,9 @@ function Strip() {
   )
 }
 
-function ProductCard({ product }: { product: Product }) {
-  const url = NUVEMSHOP_URL + '/busca?q=' + encodeURIComponent(product.name)
+function ProductCard({ product, onClick }: { product: Product, onClick: () => void }) {
   return (
-    <div onClick={() => window.open(url, '_blank')} style={{ background: '#fff', border: '1px solid rgba(201,168,76,0.15)', overflow: 'hidden', cursor: 'pointer' }}>
+    <div onClick={onClick} style={{ background: '#fff', border: '1px solid rgba(201,168,76,0.15)', overflow: 'hidden', cursor: 'pointer' }}>
       <div style={{ width: '100%', aspectRatio: '1', background: '#F0EAE0', overflow: 'hidden' }}>
         {product.image_url
           ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -169,7 +168,7 @@ function ProductCard({ product }: { product: Product }) {
           <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, fontWeight: 600, color: '#6B1A2B' }}>
             {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
-          <a href={url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: '1px solid #6B1A2B', color: '#6B1A2B', padding: '7px 16px', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none' }}>Comprar</a>
+          <button onClick={e => { e.stopPropagation(); onClick() }} style={{ background: 'transparent', border: '1px solid #6B1A2B', color: '#6B1A2B', padding: '7px 16px', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>Ver</button>
         </div>
       </div>
     </div>
@@ -194,6 +193,7 @@ function Lancamentos() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('Todos')
   const [error, setError] = useState(false)
+  const [selected, setSelected] = useState<Product | null>(null)
 
   useEffect(() => {
     fetch(SUPABASE_URL + '/functions/v1/public-products?limit=8')
@@ -205,6 +205,8 @@ function Lancamentos() {
   const filtered = filter === 'Todos' ? products : products.filter(p => categoryFilter(p.category, filter))
 
   return (
+    <>
+    <ProductModal product={selected} onClose={() => setSelected(null)} />
     <section id="lancamentos" style={{ padding: '80px 40px', background: '#FAF7F2' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ marginBottom: 48 }}>
@@ -225,7 +227,7 @@ function Lancamentos() {
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 24 }}>
-          {loading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />) : filtered.map(p => <ProductCard key={p.id} product={p} />)}
+          {loading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />) : filtered.map(p => <ProductCard key={p.id} product={p} onClick={() => setSelected(p)} />)}
         </div>
         {!loading && !error && (
           <div style={{ textAlign: 'center', marginTop: 48 }}>
@@ -234,6 +236,7 @@ function Lancamentos() {
         )}
       </div>
     </section>
+    </>
   )
 }
 
@@ -351,6 +354,42 @@ function Popup() {
               {cfg.btn}
             </a>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+function ProductModal({ product, onClose }: { product: Product | null, onClose: () => void }) {
+  if (!product) return null
+  const url = 'https://mavve.lojavirtualnuvem.com.br/busca?q=' + encodeURIComponent(product.name)
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', maxWidth: 500, width: '100%', position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9A7A83', zIndex: 1 }}>✕</button>
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+          : <div style={{ width: '100%', aspectRatio: '1', background: '#F0EAE0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#9A7A83" strokeWidth="0.8" opacity={0.3}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+        }
+        <div style={{ padding: 24 }}>
+          <div style={{ fontSize: 10, color: '#9A7A83', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>{product.category}</div>
+          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, fontWeight: 500, color: '#4A0F1E', marginBottom: 8 }}>{product.name}</div>
+          <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 28, fontWeight: 600, color: '#6B1A2B', marginBottom: 20 }}>
+            {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <a href={url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: '#6B1A2B', color: '#E8C97A', padding: '14px', fontSize: 11, fontWeight: 500, letterSpacing: '0.15em', textTransform: 'uppercase', textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+              Adicionar ao Carrinho
+            </a>
+            <button onClick={onClose} style={{ padding: '14px 20px', border: '1px solid #6B1A2B', background: 'transparent', color: '#6B1A2B', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              Fechar
+            </button>
+          </div>
         </div>
       </div>
     </div>
