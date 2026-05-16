@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Admin from './admin/Admin'
 
 const SUPABASE_URL = 'https://rjvcoxjzjcnyiwwaguwe.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqdmNveGp6amNueWl3d2FndXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNjc3NjYsImV4cCI6MjA5Mzc0Mzc2Nn0.nzGNXsJ81idfaa05lBmpZpW99uRkh6IaA5FebjMqjnE'
+const COMPANY_ID = '00000000-0000-0000-0000-000000000001'
 const NUVEMSHOP_URL = 'https://mavve.lojavirtualnuvem.com.br'
 
 type Product = {
@@ -10,6 +14,7 @@ type Product = {
   category: string
   price: number
   stock: number
+  image_url?: string
 }
 
 const CATEGORIES = ['Todos', 'Aneis', 'Colares', 'Pulseiras', 'Brincos']
@@ -22,8 +27,7 @@ const categoryFilter = (cat: string, filter: string) => {
     'Pulseiras': ['pulseira', 'bracelet'],
     'Brincos': ['brinco', 'earring'],
   }
-  const terms = map[filter] || []
-  return terms.some(t => (cat || '').toLowerCase().includes(t))
+  return (map[filter] || []).some(t => (cat || '').toLowerCase().includes(t))
 }
 
 function Nav() {
@@ -43,7 +47,7 @@ function Nav() {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       transition: 'all 0.3s ease'
     }}>
-      <a href="#" style={{ textDecoration: 'none' }}>
+      <a href="/" style={{ textDecoration: 'none' }}>
         <img src="/logo.png" alt="Mavwe" style={{
           height: scrolled ? 64 : 90,
           transition: 'height 0.3s ease',
@@ -54,73 +58,62 @@ function Nav() {
         {['lancamentos', 'colecoes', 'promocoes'].map((slug, i) => (
           <li key={slug}>
             <a href={'#' + slug} style={{
-              fontSize: 12, fontWeight: 400, letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color: scrolled ? '#5C3D47' : 'rgba(245,237,213,0.7)',
-              textDecoration: 'none'
-            }}>
-              {['Lancamentos', 'Colecoes', 'Promocoes'][i]}
-            </a>
+              fontSize: 12, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase',
+              color: scrolled ? '#5C3D47' : 'rgba(245,237,213,0.7)', textDecoration: 'none'
+            }}>{['Lancamentos', 'Colecoes', 'Promocoes'][i]}</a>
           </li>
         ))}
       </ul>
       <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{
-        background: '#6B1A2B', color: '#E8C97A',
-        padding: '10px 24px', fontSize: 11, fontWeight: 500,
-        letterSpacing: '0.14em', textTransform: 'uppercase', textDecoration: 'none'
-      }}>
-        Ver Loja
-      </a>
+        background: '#6B1A2B', color: '#E8C97A', padding: '10px 24px',
+        fontSize: 11, fontWeight: 500, letterSpacing: '0.14em',
+        textTransform: 'uppercase', textDecoration: 'none'
+      }}>Ver Loja</a>
     </nav>
   )
 }
 
 function Hero() {
+  const [cfg, setCfg] = useState<Record<string,string>>({})
+
+  useEffect(() => {
+    fetch(SUPABASE_URL + '/rest/v1/landing_settings?company_id=eq.' + COMPANY_ID + '&section=eq.hero&select=key,value', {
+      headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON }
+    }).then(r => r.json()).then((data: any[]) => {
+      const obj: Record<string,string> = {}
+      data?.forEach((d: any) => obj[d.key] = d.value)
+      setCfg(obj)
+    }).catch(() => {})
+  }, [])
+
+  const eyebrow = cfg.eyebrow || 'Pratas e Acessorios de Luxo'
+  const title = cfg.title || 'Elegancia que'
+  const subtitle = cfg.subtitle || 'Joias em prata 925 com garantia vitalicia'
+  const btn1 = cfg.btn1 || 'Ver Lancamentos'
+  const btn1url = cfg.btn1url || '#lancamentos'
+  const btn2 = cfg.btn2 || 'Explorar Loja'
+  const btn2url = cfg.btn2url || NUVEMSHOP_URL
+
   return (
     <section style={{
-      minHeight: '100vh', background: '#4A0F1E',
-      position: 'relative', overflow: 'hidden',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '100px 40px 60px'
+      minHeight: '100vh', background: '#4A0F1E', position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '100px 40px 60px'
     }}>
       <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 780 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 300, letterSpacing: '0.35em',
-          textTransform: 'uppercase', color: '#C9A84C', marginBottom: 28,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16
-        }}>
+        <div style={{ fontSize: 11, letterSpacing: '0.35em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
           <span style={{ width: 40, height: 1, background: '#C9A84C', opacity: 0.5, display: 'inline-block' }} />
-          Pratas e Acessorios de Luxo
+          {eyebrow}
           <span style={{ width: 40, height: 1, background: '#C9A84C', opacity: 0.5, display: 'inline-block' }} />
         </div>
-        <h1 style={{
-          fontFamily: '"Cormorant Garamond", serif',
-          fontSize: 'clamp(52px,8vw,96px)', fontWeight: 300,
-          lineHeight: 0.95, color: '#FAF7F2',
-          letterSpacing: '-0.02em', marginBottom: 16
-        }}>
-          Elegancia que{' '}
-          <em style={{ color: '#E8C97A', fontStyle: 'italic' }}>dura para sempre</em>
+        <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 'clamp(52px,8vw,96px)', fontWeight: 300, lineHeight: 0.95, color: '#FAF7F2', letterSpacing: '-0.02em', marginBottom: 16 }}>
+          {title}{" "}<em style={{ color: '#E8C97A', fontStyle: 'italic' }}>dura para sempre</em>
         </h1>
-        <p style={{
-          fontFamily: '"Cormorant Garamond", serif',
-          fontSize: 'clamp(14px,2vw,18px)', fontWeight: 300, fontStyle: 'italic',
-          color: 'rgba(245,237,213,0.6)', letterSpacing: '0.08em', marginBottom: 48
-        }}>
-          Joias em prata 925 com garantia vitalicia
+        <p style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 'clamp(14px,2vw,18px)', fontWeight: 300, fontStyle: 'italic', color: 'rgba(245,237,213,0.6)', letterSpacing: '0.08em', marginBottom: 48 }}>
+          {subtitle}
         </p>
         <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="#lancamentos" style={{
-            background: '#C9A84C', color: '#4A0F1E',
-            padding: '16px 40px', fontSize: 11, fontWeight: 500,
-            letterSpacing: '0.18em', textTransform: 'uppercase', textDecoration: 'none'
-          }}>Ver Lancamentos</a>
-          <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{
-            background: 'transparent', color: '#E8C97A',
-            border: '1px solid rgba(201,168,76,0.4)',
-            padding: '16px 40px', fontSize: 11, fontWeight: 400,
-            letterSpacing: '0.18em', textTransform: 'uppercase', textDecoration: 'none'
-          }}>Explorar Loja</a>
+          <a href={btn1url} style={{ background: '#C9A84C', color: '#4A0F1E', padding: '16px 40px', fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', textDecoration: 'none', transition: 'all 0.25s', display: 'inline-block' }} onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#E8C97A'; (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)' }} onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = '#C9A84C'; (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)' }}>{btn1}</a>
+          <a href={btn2url} target="_blank" rel="noopener noreferrer" style={{ background: 'transparent', color: '#E8C97A', border: '1px solid rgba(201,168,76,0.4)', padding: '16px 40px', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', textDecoration: 'none', transition: 'all 0.25s', display: 'inline-block' }} onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = '#C9A84C'; (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(-2px)' }} onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(201,168,76,0.4)'; (e.currentTarget as HTMLAnchorElement).style.transform = 'translateY(0)' }}>{btn2}</a>
         </div>
       </div>
     </section>
@@ -128,17 +121,26 @@ function Hero() {
 }
 
 function Strip() {
-  const items = ['Prata 925 Certificada', 'Envio para todo Brasil', 'Garantia Vitalicia', 'Parcelamos em 12x']
+  const [items, setItems] = useState([
+    { icon: '✦', text: 'Prata 925 Certificada' },
+    { icon: '✦', text: 'Envio para todo Brasil' },
+    { icon: '✦', text: 'Garantia Vitalicia' },
+    { icon: '✦', text: 'Parcelamos em 12x' },
+  ])
+
+  useEffect(() => {
+    fetch(SUPABASE_URL + '/rest/v1/landing_settings?company_id=eq.' + COMPANY_ID + '&section=eq.strip&key=eq.items&select=value', {
+      headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON }
+    }).then(r => r.json()).then((data: any[]) => {
+      if (data?.[0]?.value) setItems(JSON.parse(data[0].value))
+    }).catch(() => {})
+  }, [])
+
   return (
-    <div style={{
-      background: '#6B1A2B', padding: '18px 40px',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      gap: 48, flexWrap: 'wrap'
-    }}>
+    <div style={{ background: '#6B1A2B', padding: '18px 40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 48, flexWrap: 'wrap' }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#F5EDD5', fontSize: 12, letterSpacing: '0.1em' }}>
-          <span style={{ color: '#C9A84C' }}>✦</span>
-          {item}
+          <span style={{ color: '#C9A84C' }}>{item.icon}</span>{item.text}
         </div>
       ))}
     </div>
@@ -148,36 +150,21 @@ function Strip() {
 function ProductCard({ product }: { product: Product }) {
   const url = NUVEMSHOP_URL + '/busca?q=' + encodeURIComponent(product.name)
   return (
-    <div onClick={() => window.open(url, '_blank')} style={{
-      background: '#fff', border: '1px solid rgba(201,168,76,0.15)',
-      overflow: 'hidden', cursor: 'pointer'
-    }}>
-      <div style={{
-        width: '100%', aspectRatio: '1', background: '#F0EAE0',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexDirection: 'column', gap: 12, color: '#9A7A83'
-      }}>
+    <div onClick={() => window.open(url, '_blank')} style={{ background: '#fff', border: '1px solid rgba(201,168,76,0.15)', overflow: 'hidden', cursor: 'pointer' }}>
+      <div style={{ width: '100%', aspectRatio: '1', background: '#F0EAE0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: '#9A7A83' }}>
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.8" opacity={0.3}>
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
         </svg>
         <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{product.sku}</span>
       </div>
       <div style={{ padding: 20 }}>
-        <div style={{ fontSize: 10, color: '#9A7A83', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>
-          {product.category || 'Acessorio'}
-        </div>
-        <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 20, fontWeight: 500, color: '#4A0F1E', lineHeight: 1.2, marginBottom: 14 }}>
-          {product.name}
-        </div>
+        <div style={{ fontSize: 10, color: '#9A7A83', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 6 }}>{product.category || 'Acessorio'}</div>
+        <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 20, fontWeight: 500, color: '#4A0F1E', lineHeight: 1.2, marginBottom: 14 }}>{product.name}</div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, fontWeight: 600, color: '#6B1A2B' }}>
             {product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
-          <a href={url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{
-            background: 'transparent', border: '1px solid #6B1A2B',
-            color: '#6B1A2B', padding: '7px 16px', fontSize: 10,
-            letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none'
-          }}>Comprar</a>
+          <a href={url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ background: 'transparent', border: '1px solid #6B1A2B', color: '#6B1A2B', padding: '7px 16px', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none' }}>Comprar</a>
         </div>
       </div>
     </div>
@@ -223,40 +210,21 @@ function Lancamentos() {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 32 }}>
           {CATEGORIES.map(cat => (
-            <button key={cat} onClick={() => setFilter(cat)} style={{
-              padding: '8px 18px',
-              border: '1px solid ' + (filter === cat ? '#6B1A2B' : 'rgba(107,26,43,0.2)'),
-              background: filter === cat ? '#6B1A2B' : 'transparent',
-              color: filter === cat ? '#FAF7F2' : '#5C3D47',
-              fontFamily: 'Jost, sans-serif', fontSize: 11,
-              letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer'
-            }}>{cat}</button>
+            <button key={cat} onClick={() => setFilter(cat)} style={{ padding: '8px 18px', border: '1px solid ' + (filter === cat ? '#6B1A2B' : 'rgba(107,26,43,0.2)'), background: filter === cat ? '#6B1A2B' : 'transparent', color: filter === cat ? '#FAF7F2' : '#5C3D47', fontFamily: 'Jost, sans-serif', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{cat}</button>
           ))}
         </div>
         {error && (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, color: '#4A0F1E', marginBottom: 12 }}>Produtos em breve</div>
-            <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{
-              display: 'inline-block', background: '#6B1A2B', color: '#E8C97A',
-              padding: '14px 32px', fontSize: 11, letterSpacing: '0.15em',
-              textTransform: 'uppercase', textDecoration: 'none'
-            }}>Ver Loja Completa</a>
+            <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: '#6B1A2B', color: '#E8C97A', padding: '14px 32px', fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', textDecoration: 'none' }}>Ver Loja Completa</a>
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: 24 }}>
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />)
-            : filtered.map(p => <ProductCard key={p.id} product={p} />)
-          }
+          {loading ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />) : filtered.map(p => <ProductCard key={p.id} product={p} />)}
         </div>
         {!loading && !error && (
           <div style={{ textAlign: 'center', marginTop: 48 }}>
-            <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{
-              display: 'inline-block', background: 'transparent',
-              border: '1px solid #6B1A2B', color: '#6B1A2B',
-              padding: '14px 40px', fontSize: 11, letterSpacing: '0.15em',
-              textTransform: 'uppercase', textDecoration: 'none'
-            }}>Ver Todos os Produtos</a>
+            <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: 'transparent', border: '1px solid #6B1A2B', color: '#6B1A2B', padding: '14px 40px', fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', textDecoration: 'none' }}>Ver Todos os Produtos</a>
           </div>
         )}
       </div>
@@ -265,11 +233,23 @@ function Lancamentos() {
 }
 
 function Sales() {
-  const offers = [
-    { discount: '30%', label: 'de desconto', name: 'Colecao Verao', desc: 'Aneis e pulseiras com acabamento dourado' },
-    { discount: '2x1', label: 'na compra', name: 'Brincos Selecionados', desc: 'Pares classicos e modernos em prata 925' },
-    { discount: '20%', label: 'de desconto', name: 'Colares Longos', desc: 'Modelos exclusivos com pedras naturais' },
-  ]
+  const [offers, setOffers] = useState([
+    { discount: '30%', label: 'de desconto', name: 'Colecao Verao', desc: 'Aneis e pulseiras com acabamento dourado', active: true },
+    { discount: '2x1', label: 'na compra', name: 'Brincos Selecionados', desc: 'Pares classicos e modernos em prata 925', active: true },
+    { discount: '20%', label: 'de desconto', name: 'Colares Longos', desc: 'Modelos exclusivos com pedras naturais', active: true },
+  ])
+
+  useEffect(() => {
+    fetch(SUPABASE_URL + '/rest/v1/landing_settings?company_id=eq.' + COMPANY_ID + '&section=eq.promocoes&key=eq.offers&select=value', {
+      headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON }
+    }).then(r => r.json()).then((data: any[]) => {
+      if (data?.[0]?.value) {
+        try { setOffers(JSON.parse(data[0].value)) } catch {}
+      }
+    }).catch(() => {})
+  }, [])
+
+  const activeOffers = offers.filter((o: any) => o.active !== false)
   return (
     <section id="promocoes" style={{ padding: '80px 40px', background: '#4A0F1E' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -280,11 +260,8 @@ function Sales() {
           </h2>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 2 }}>
-          {offers.map((o, i) => (
-            <div key={i} onClick={() => window.open(NUVEMSHOP_URL, '_blank')} style={{
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(201,168,76,0.1)',
-              padding: '28px 24px', cursor: 'pointer'
-            }}>
+          {activeOffers.map((o, i) => (
+            <div key={i} onClick={() => window.open(NUVEMSHOP_URL, '_blank')} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(201,168,76,0.1)', padding: '28px 24px', cursor: 'pointer' }}>
               <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 48, fontWeight: 300, color: '#C9A84C', lineHeight: 1, marginBottom: 4 }}>{o.discount}</div>
               <div style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(245,237,213,0.5)', marginBottom: 16 }}>{o.label}</div>
               <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, fontWeight: 400, color: '#FAF7F2', marginBottom: 6 }}>{o.name}</div>
@@ -293,11 +270,7 @@ function Sales() {
           ))}
         </div>
         <div style={{ textAlign: 'center', marginTop: 40 }}>
-          <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{
-            display: 'inline-block', background: '#C9A84C', color: '#4A0F1E',
-            padding: '16px 40px', fontSize: 11, fontWeight: 500,
-            letterSpacing: '0.18em', textTransform: 'uppercase', textDecoration: 'none'
-          }}>Ver Todas as Promocoes</a>
+          <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: '#C9A84C', color: '#4A0F1E', padding: '16px 40px', fontSize: 11, fontWeight: 500, letterSpacing: '0.18em', textTransform: 'uppercase', textDecoration: 'none' }}>Ver Todas as Promocoes</a>
         </div>
       </div>
     </section>
@@ -316,9 +289,7 @@ function Footer() {
           <h4 style={{ fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#C9A84C', marginBottom: 20, fontWeight: 400 }}>Loja</h4>
           <ul style={{ listStyle: 'none' }}>
             {['Lancamentos', 'Colecoes', 'Promocoes'].map(item => (
-              <li key={item} style={{ marginBottom: 10 }}>
-                <a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'rgba(245,237,213,0.5)', textDecoration: 'none' }}>{item}</a>
-              </li>
+              <li key={item} style={{ marginBottom: 10 }}><a href={NUVEMSHOP_URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: 'rgba(245,237,213,0.5)', textDecoration: 'none' }}>{item}</a></li>
             ))}
           </ul>
         </div>
@@ -337,9 +308,54 @@ function Footer() {
   )
 }
 
-export default function App() {
+
+function Popup() {
+  const [show, setShow] = useState(false)
+  const [cfg, setCfg] = useState<Record<string,string>>({})
+
+  useEffect(() => {
+    fetch(SUPABASE_URL + '/rest/v1/landing_settings?company_id=eq.' + COMPANY_ID + '&section=eq.popup&select=key,value', {
+      headers: { apikey: SUPABASE_ANON, Authorization: 'Bearer ' + SUPABASE_ANON }
+    }).then(r => r.json()).then((data: any[]) => {
+      const obj: Record<string,string> = {}
+      data?.forEach((d: any) => obj[d.key] = d.value)
+      setCfg(obj)
+      if (obj.active === 'true') {
+        const delay = parseInt(obj.delay || '3') * 1000
+        setTimeout(() => setShow(true), delay)
+      }
+    }).catch(() => {})
+  }, [])
+
+  if (!show || cfg.active !== 'true') return null
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={() => setShow(false)}>
+      <div style={{ background: '#fff', padding: 48, maxWidth: 480, width: '90%', position: 'relative' }}
+        onClick={e => e.stopPropagation()}>
+        <button onClick={() => setShow(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9A7A83' }}>✕</button>
+        <div style={{ textAlign: 'center' }}>
+          <img src="/logo.png" alt="Mavwe" style={{ height: 56, marginBottom: 16, filter: "brightness(0) saturate(100%) invert(13%) sepia(45%) saturate(1200%) hue-rotate(320deg) brightness(80%)" }} />
+          <h3 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 28, fontWeight: 400, color: '#4A0F1E', marginBottom: 12 }}>
+            {cfg.title || 'Oferta Especial'}
+          </h3>
+          <p style={{ fontSize: 14, color: '#5C3D47', lineHeight: 1.6, marginBottom: 24 }}>{cfg.text}</p>
+          {cfg.btn && (
+            <a href={cfg.btn_url || '#'} style={{ display: 'inline-block', background: '#6B1A2B', color: '#E8C97A', padding: '14px 32px', fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', textDecoration: 'none' }}>
+              {cfg.btn}
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Home() {
   return (
     <>
+      <Popup />
       <Nav />
       <Hero />
       <Strip />
@@ -347,5 +363,17 @@ export default function App() {
       <Sales />
       <Footer />
     </>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/*" element={<Admin />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
