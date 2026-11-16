@@ -10,12 +10,13 @@ const db = async (path: string, opts: any = {}) => {
     ...opts,
     headers: {
       apikey: SUPABASE_ANON,
-      Authorization: `Bearer ${SUPABASE_ANON}`,
+      Authorization: `Bearer ${sessionStorage.getItem("landing_token") || SUPABASE_ANON}`,
       "Content-Type": "application/json",
       Prefer: prefer,
       ...(opts.headers ?? {})
     }
   })
+  if (res.status === 401) { sessionStorage.removeItem("landing_token"); sessionStorage.removeItem("landing_admin"); location.reload() }
   if (!res.ok) throw new Error(await res.text())
   return res.status === 204 ? null : res.json()
 }
@@ -31,11 +32,6 @@ const upsertSettings = async (entries: {company_id: string, section: string, key
       await db(`landing_settings`, { method: "POST", body: JSON.stringify(entry), prefer: "return=minimal" })
     }
   }
-}
-
-const sha256 = async (text: string) => {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("")
 }
 
 type Tab = "hero" | "strip" | "promocoes" | "secoes" | "vouchers" | "fidelidade" | "seo" | "popup"
@@ -62,14 +58,19 @@ function Login({ onLogin }: { onLogin: () => void }) {
     setLoading(true)
     setError("")
     try {
-      const pinHash = await sha256(`mavve:${pin}:pratas2026`)
-      const passHash = await sha256(password)
-      const data = await db(`landing_admins?company_id=eq.${COMPANY_ID}&pin_hash=eq.${pinHash}&password_hash=eq.${passHash}&select=id`)
-      if (data && data.length > 0) {
+      // Login pelo mesmo PIN da Equipe (staff-login); só admin/gerente editam o site.
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/staff-login`, {
+        method: "POST",
+        headers: { apikey: SUPABASE_ANON, "Content-Type": "application/json" },
+        body: JSON.stringify({ email: password.trim(), pin })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data?.session?.access_token && ["admin", "gerente"].includes(data?.usuario?.perfil)) {
+        sessionStorage.setItem("landing_token", data.session.access_token)
         sessionStorage.setItem("landing_admin", "1")
         onLogin()
       } else {
-        setError("PIN ou senha incorretos")
+        setError(res.ok ? "Acesso restrito a admin/gerente" : "E-mail ou PIN incorretos")
       }
     } catch {
       setError("Erro ao autenticar")
@@ -91,10 +92,10 @@ function Login({ onLogin }: { onLogin: () => void }) {
             placeholder="4 dígitos" />
         </div>
         <div style={{ marginBottom: 24 }}>
-          <label style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5C3D47", display: "block", marginBottom: 6 }}>Senha</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+          <label style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "#5C3D47", display: "block", marginBottom: 6 }}>E-mail</label>
+          <input type="email" value={password} onChange={e => setPassword(e.target.value)}
             style={{ width: "100%", padding: "10px 12px", border: "1px solid rgba(107,26,43,0.2)", fontSize: 14, outline: "none", boxSizing: "border-box" }}
-            placeholder="Senha de acesso"
+            placeholder="seu e-mail da Equipe"
             onKeyDown={e => e.key === "Enter" && handleLogin()} />
         </div>
         {error && <div style={{ color: "#c0392b", fontSize: 12, marginBottom: 16, textAlign: "center" }}>{error}</div>}
@@ -570,7 +571,7 @@ const styles: Record<string, React.CSSProperties> = {
 
 // MAIN ADMIN
 export default function Admin() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("landing_admin") === "1")
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem("landing_admin") === "1" && !!sessionStorage.getItem("landing_token"))
   const [tab, setTab] = useState<Tab>("hero")
 
   if (!authed) return <Login onLogin={() => setAuthed(true)} />
@@ -608,7 +609,7 @@ export default function Admin() {
           </button>
         ))}
         <div style={{ marginTop: "auto", padding: "24px" }}>
-          <button onClick={() => { sessionStorage.removeItem("landing_admin"); setAuthed(false) }}
+          <button onClick={() => { sessionStorage.removeItem("landing_admin"); sessionStorage.removeItem("landing_token"); setAuthed(false) }}
             style={{ ...styles.btnDanger, width: "100%", fontSize: 10 }}>
             Sair
           </button>
